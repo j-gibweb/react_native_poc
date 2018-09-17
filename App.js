@@ -1,63 +1,14 @@
 import React, { Component } from "react";
-import { StyleSheet, Text, View } from "react-native";
-// import { decorator as sensors } from "react-native-sensors";
-import { Accelerometer, Gyroscope } from "react-native-sensors";
-// import clamp from "clamp"
+import { StyleSheet, Text, View, TouchableWithoutFeedback } from "react-native";
+
+import Cell from "./Cell";
+import GameOver from './GameOver'
 
 
-
-const clamp = (val, low, high) => {
-  if (val < low) return low
-  if (val > high) return high
-  return val
-}
-
-const neutralData = {
-  x: 0,
-  y: 0
-};
-
-class Game extends Component {
-  constructor(props) {
-    super(props);
-    this.state = { ...neutralData };
-  }
-
-  componentDidMount() {
-    this.startGameEventListener();
-  }
-
-  componentWillUnmount() {
-    this.subscription.unsubscribe();
-  }
-
-  startGameEventListener() {
-    this.subscription = this.props.data
-      .startWith(neutralData)
-      .scan(
-        (acc, value) => ({ x: acc.x - value.x, y: acc.y + value.y }),
-        neutralData
-      )
-      .subscribe(({ x, y }) => {
-        this.setState({ 
-          x: clamp(x * -3, 0, 150),
-          y: clamp(y * -3, 0, 150), 
-        });
-      });
-  }
-
-  render() {
-    const { x, y } = this.state
-
-    return (
-      <View style={styles.Table}>
-        <Text>
-          {/* {JSON.stringify(this.state)} */}
-        </Text>
-        <View style={[styles.Ball, {left: x, top: y}]}></View>
-      </View>
-    );
-  }
+const areEqual = (a, b, c) => {
+  return (
+    !!a && a === b && a === c
+  )
 }
 
 class App extends Component {
@@ -65,43 +16,98 @@ class App extends Component {
     super(props);
 
     this.state = {
-      observable: null,
-      error: null
+      turn: 1,
+      grid: Array(9)
+        .fill()
+        .map(() => ""),
+      winner: '',
+
+      
+      // grid: ["O", "X", "O", "X", "O", "X", "", "", "O"],
+
     };
 
-    new Accelerometer({
-      updateInterval: 16
+    this.handlePress = this.handlePress.bind(this);
+  }
+
+  resetGame() {
+    this.setState({
+      turn: 1,
+      grid: Array(9)
+        .fill()
+        .map(() => ""),
+      winner: '',
     })
-    .then(observable => {
-      this.setState({ observable });
-    })
-    .catch(error => {
-      this.setState({ error: "The sensor is not available" });
+  }
+
+  checkForWinner() {
+    const { grid } = this.state
+
+    let winner
+    // top row
+    if (areEqual(grid[0], grid[1], grid[2])) {
+      winner = grid[0]
+    }
+    // middle row
+    // if (grid[3] && grid[3] === grid[4] && grid[3] === grid[5]) winner = grid[3]
+    // // bottom row
+    // if (grid[6] && grid[6] === grid[7] && grid[8] === grid[5]) winner = grid[6]
+    // // top left to bottom right
+    // if (grid[0] && grid[0] === grid[4] && grid[0] === grid[8]) winner = grid[0]
+    // // top right to bottom left
+    // if (grid[2] && grid[2] === grid[4] && grid[2] === grid[6]) winner = grid[2]
+
+    if (winner) {
+      setTimeout(() => {
+        this.setState({ winner })
+      }, 500)
+    }
+    
+  }
+
+  handlePress(cell) {
+    const { grid, turn } = this.state;
+
+    if (grid[cell]) return;
+
+    this.checkForWinner()
+
+    grid[cell] = turn % 2 === 0 ? "X" : "O";
+
+    this.setState({ 
+      grid, 
+      turn: turn + 1
     });
   }
 
   render() {
-    const { error, observable } = this.state;
-
-    if (error) {
-      return (
-        <View style={styles.container}>
-          <Text>{error}</Text>
-        </View>
-      );
-    }
-
-    if (!observable) {
-      return (
-        <View style={styles.container}>
-          <Text>Loading Sensor</Text>
-        </View>
-      );
-    }
-
+    
     return (
       <View style={styles.container}>
-        <Game data={observable} />
+        {Array(9)
+          .fill()
+          .map((_, i) => {
+            return (
+              <Cell
+                index={i}
+                key={i}
+                handlePress={this.handlePress}
+                styles={[
+                  (i + 1) % 3 !== 0 && styles.borderRight,
+                  i < 6 && styles.borderBottom
+                ]}
+                grid={this.state.grid}
+              />
+            );
+          })
+        }
+
+        {this.state.winner && (
+          <GameOver 
+            winner={this.state.winner} 
+            resetGame={this.resetGame.bind(this)}
+          />
+        )}
       </View>
     );
   }
@@ -110,31 +116,26 @@ class App extends Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    backgroundColor: "white",
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    marginVertical: 50,
+    marginHorizontal: 10
   },
-  Table: {
-    width: 150,
-    height: 150,
-    backgroundColor: 'salmon'
+  cell: {
+    width: "33%",
+    height: "33%"
   },
-  Ball: {
-    width: 20,
-    height: 20,
-    borderRadius: 100/2,
-    backgroundColor: 'black',
-    position: 'absolute',
-    // left: 50,
-    // top: 50
-  }
+  borderRight: { 
+    borderRightColor: "black", 
+    borderRightWidth: 5 
+  },
+  borderBottom: { 
+    borderBottomColor: "black", 
+    borderBottomWidth: 5 
+  },
 });
 
 export default App;
-
-// export default sensors({
-//   Accelerometer: {
-//     updateInterval: 300 // optional
-//   },
-//   Gyroscope: true
-// })(App);

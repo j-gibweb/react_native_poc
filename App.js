@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, TouchableWithoutFeedback } from "react-native";
 
 import Cell from "./Cell";
 import GameOver from './GameOver'
-
+import CatsGame from './CatsGame'
 
 const areEqual = (a, b, c) => {
   return (
@@ -23,8 +23,9 @@ class App extends Component {
       winner: '',
 
       
-      // grid: ["O", "X", "O", "X", "O", "X", "", "", "O"],
-
+      grid: ["O", "X", "O", "X", "X", "O", "", "O", ""],
+      turn: 8,
+      // catsGame: false
     };
 
     this.handlePress = this.handlePress.bind(this);
@@ -37,30 +38,32 @@ class App extends Component {
         .fill()
         .map(() => ""),
       winner: '',
+      catsGame: false
     })
   }
 
   checkForWinner() {
     const { grid } = this.state
-
+    console.log(this.state.turn)
     let winner
     // top row
-    if (areEqual(grid[0], grid[1], grid[2])) {
-      winner = grid[0]
-    }
+    if (areEqual(grid[0], grid[1], grid[2])) winner = grid[0]
     // middle row
-    // if (grid[3] && grid[3] === grid[4] && grid[3] === grid[5]) winner = grid[3]
+    if (grid[3] && grid[3] === grid[4] && grid[3] === grid[5]) winner = grid[3]
     // // bottom row
-    // if (grid[6] && grid[6] === grid[7] && grid[8] === grid[5]) winner = grid[6]
+    if (grid[6] && grid[6] === grid[7] && grid[8] === grid[5]) winner = grid[6]
     // // top left to bottom right
-    // if (grid[0] && grid[0] === grid[4] && grid[0] === grid[8]) winner = grid[0]
+    if (grid[0] && grid[0] === grid[4] && grid[0] === grid[8]) winner = grid[0]
     // // top right to bottom left
-    // if (grid[2] && grid[2] === grid[4] && grid[2] === grid[6]) winner = grid[2]
+    if (grid[2] && grid[2] === grid[4] && grid[2] === grid[6]) winner = grid[2]
 
     if (winner) {
       setTimeout(() => {
         this.setState({ winner })
       }, 500)
+    }
+    else if (this.state.turn === 10) {
+      this.setState({catsGame: true})
     }
     
   }
@@ -70,14 +73,12 @@ class App extends Component {
 
     if (grid[cell]) return;
 
-    this.checkForWinner()
-
     grid[cell] = turn % 2 === 0 ? "X" : "O";
 
     this.setState({ 
       grid, 
       turn: turn + 1
-    });
+    }, this.checkForWinner);
   }
 
   render() {
@@ -108,6 +109,9 @@ class App extends Component {
             resetGame={this.resetGame.bind(this)}
           />
         )}
+        {this.state.catsGame && 
+          <CatsGame resetGame={this.resetGame.bind(this)} />
+        }
       </View>
     );
   }
